@@ -62,7 +62,7 @@ static const uint8_t modem_sine_table[512] = {
 };
 
 // External constants
-const uint32_t MODEM_CLOCK_RATE = F_CPU / 8;  // 10 MHz
+const uint32_t MODEM_CLOCK_RATE = F_CPU / 2;  // 40 MHz
 const uint8_t REST_DUTY         = 127;
 const uint16_t TABLE_SIZE       = sizeof(modem_sine_table);
 
@@ -77,7 +77,7 @@ void modem_hal_setup()
   // other timers are not an option since the only PWM capable timers
   // are 2 and 3 and 3 is already used for the buzzer.
   
-  OpenTimer2(T2_ON | T2_PS_1_8, 0xFF); 
+  OpenTimer2(T2_ON | T2_PS_1_2, 0xFF); 
   OpenOC1(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0, 0);
 
   // The above could also be accomplished by... ?
