@@ -16,25 +16,61 @@
  */
 
 #ifdef PIC32MX
-#ifndef __MODEM_HAL_PIC32_H__
-#define __MODEM_HAL_PIC32_H__
 
+#ifndef __AFSK_PIC32_H__
+#define __AFSK_PIC32_H__
+
+#include <p32xxxx.h>
+#include <plib.h>
 #include <stdint.h>
+#include "config.h"
 
 // Exported consts
 extern const uint32_t MODEM_CLOCK_RATE;
 extern const uint8_t REST_DUTY;
 extern const uint16_t TABLE_SIZE;
+extern const uint32_t PLAYBACK_RATE;
 
-// Exported functions
-void modem_hal_setup();   // modem setup
-void modem_hal_start();   // start modulation
-void modem_hal_stop();    // stop modulation
-void modem_hal_output_sample(int phase);    // output sample
+// Exported vars
+extern const uint8_t afsk_sine_table[];
+
+// Inline functions (this saves precious cycles in the ISR)
+inline uint8_t afsk_read_sample(int phase)
+{
+  return afsk_sine_table[phase];
+}
+
+inline void afsk_output_sample(uint8_t s)
+{
+  SetDCOC1PWM(s);
+}
+
 #ifdef DEBUG_MODEM
-uint16_t modem_hal_timer_counter();         // timer counter
-int modem_hal_isr_overrun();                // has the isr overrun?
+inline uint16_t afsk_timer_counter()
+{
+  return (uint16_t) TMR2;
+}
+
+inline int afsk_isr_overrun()
+{
+  return (IFS0bits.T2IF);
+}
 #endif
 
-#endif // ifndef __MODEM_HAL_PIC32_H__
-#endif // ifdef PIC32MX
+
+// Exported functions
+void afsk_setup();
+void afsk_send(const uint8_t *buffer, int len);
+void afsk_start();
+int afsk_busy();
+void afsk_isr();
+void afsk_timer_setup();
+void afsk_timer_start();
+void afsk_timer_stop();
+
+#ifdef DEBUG_MODEM
+void afsk_debug();
+#endif
+
+#endif
+#endif // PIC32MX

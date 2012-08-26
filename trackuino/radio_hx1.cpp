@@ -16,14 +16,17 @@
  */
 
 #include "config.h"
-#include "pin_pic32.h"
+#include "pin.h"
 #include "radio_hx1.h"
 #include <WProgram.h>
 
 
 void RadioHx1::setup()
 {
-  // Nothing to set up... This is a really simple radio
+  // Configure pins
+  pinMode(PTT_PIN, OUTPUT);
+  pin_write(PTT_PIN, LOW);
+  pinMode(AUDIO_PIN, OUTPUT);
 }
 
 void RadioHx1::ptt_on()

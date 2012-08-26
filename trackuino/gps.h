@@ -18,7 +18,10 @@
 #ifndef __GPS_H__
 #define __GPS_H__
 
+#include <stdint.h>
+
 extern char gps_time[7];       // HHMMSS
+extern uint32_t gps_seconds;   // seconds after midnight
 extern char gps_date[7];       // DDMMYY
 extern float gps_lat;
 extern float gps_lon;

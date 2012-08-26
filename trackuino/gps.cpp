@@ -96,6 +96,7 @@ static unsigned int offset = 0;
 static bool active = false;
 static char gga_time[7] = "", rmc_time[7] = "";
 static char new_time[7];
+static uint32_t new_seconds;
 static float new_lat;
 static float new_lon;
 static char new_aprs_lat[9];
@@ -106,6 +107,7 @@ static float new_altitude;
 
 // Public (extern) variables, readable from other modules
 char gps_time[7];       // HHMMSS
+uint32_t gps_seconds = 0;   // seconds after midnight
 float gps_lat = 0;
 float gps_lon = 0;
 char gps_aprs_lat[9];
@@ -144,6 +146,11 @@ void parse_time(const char *token)
   strncpy(new_time, token, 6);
   // Terminate string
   new_time[6] = '\0';
+  
+  new_seconds = 
+    ((new_time[0] - '0') * 10 + (new_time[1] - '0')) * 60 * 60UL +
+    ((new_time[2] - '0') * 10 + (new_time[3] - '0')) * 60 +
+    ((new_time[4] - '0') * 10 + (new_time[5] - '0'));
 }
 
 void parse_status(const char *token)
@@ -277,6 +284,7 @@ bool gps_decode(char c)
             active) {                             // Valid fix?
           // Atomically merge data from the two sentences
           strcpy(gps_time, new_time);
+          gps_seconds = new_seconds;
           gps_lat = new_lat;
           gps_lon = new_lon;
           strcpy(gps_aprs_lat, new_aprs_lat);

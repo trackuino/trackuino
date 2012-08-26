@@ -16,8 +16,7 @@
  */
 #ifdef PIC32MX
 
-#include "config.h"
-#include "pin_pic32.h"
+#include "pin.h"
 #include <plib.h>
 #include <stdint.h>
 #include <WProgram.h>
@@ -29,7 +28,6 @@ void pin_write(uint8_t pin, uint8_t val)
   volatile p32_ioport * iop;
   uint8_t         port;
   uint16_t        bit;
-
   //* Get the port number for this pin.
   if ((pin >= NUM_DIGITAL_PINS) || ((port = digitalPinToPort(pin)) == NOT_A_PIN))
   {
@@ -55,3 +53,4 @@ void pin_write(uint8_t pin, uint8_t val)
 
 
 #endif // PIC32MX
+

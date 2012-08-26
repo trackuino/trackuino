@@ -14,21 +14,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#ifndef __POWER_H__
+#define __POWER_H__
 
-#ifndef __MODEM_H__
-#define __MODEM_H__
+void power_save();
 
-#define MODEM_MAX_PACKET 512
+#endif // ifndef __POWER_H__
 
-extern volatile unsigned char modem_packet[MODEM_MAX_PACKET];  // Upper layer data
-extern volatile unsigned int modem_packet_size;                // in bits
-
-void modem_setup();
-void modem_flush_frame();
-int modem_busy();
-void modem_playback();
-#ifdef DEBUG_MODEM
-void modem_debug();
-#endif
-
-#endif

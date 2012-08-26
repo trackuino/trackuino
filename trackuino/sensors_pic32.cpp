@@ -24,7 +24,7 @@
 #ifdef PIC32MX
 
 #include "config.h"
-#include "pin_pic32.h"
+#include "pin.h"
 #include "sensors_pic32.h"
 #include <WProgram.h>
 
@@ -44,18 +44,17 @@ int sensors_lm60(int powerPin, int readPin)
   pin_write(powerPin, LOW);    // Turn the LM60 off
   int mV = 3300L * adc / 1024L;   // Millivolts
   
-#if TEMP_UNIT == 1    // C
+  switch(TEMP_UNIT) {
+    case 1: // C
       // Vo(mV) = (6.25*T) + 424 -> T = (Vo - 424) * 100 / 625
-      return (4L * (mV - 424) / 25) + CALIBRATION_VAL ;
-#endif
-#if TEMP_UNIT == 2    // K
+      return (4L * (mV - 424) / 25) + CALIBRATION_VAL;
+    case 2: // K
       // C + 273 = K
       return (4L * (mV - 424) / 25) + 273 + CALIBRATION_VAL;
-#endif
-#if TEMP_UNIT == 3    // F
+    case 3: // F
       // (9/5)C + 32 = F
       return (36L * (mV - 424) / 125) + 32 + CALIBRATION_VAL;
-#endif
+  }
 }
 
 int sensors_ext_lm60()

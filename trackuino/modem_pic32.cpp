@@ -14,12 +14,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 #ifdef PIC32MX
-#ifndef __POWER_PIC32_H__
-#define __POWER_PIC32_H__
 
-void power_save();
+#include "afsk_pic32.h"
+#include <p32xxxx.h>
+#include <plib.h>
 
-#endif // ifndef __POWER_PIC32_H__
+// This is the timer 2 interrupt service routine (ISR). Multiple
+// modems can be operated from here.
+extern "C" void __ISR(_TIMER_2_VECTOR, ipl6) T2_IntHandler (void)
+{
+  // Clear interrupt. By clearing the IF *before* handling the
+  // interrupt we can test for overruns (the IF would turn back on).
+  mT2ClearIntFlag();
+
+  // Call modem ISRs:
+  afsk_isr();
+}
+
 #endif // ifdef PIC32MX

@@ -15,11 +15,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifdef AVR
-#ifndef __POWER_AVR_H__
-#define __POWER_AVR_H__
+#ifndef __PIN_H__
+#define __PIN_H__
 
-void power_save();
+#include <stdint.h>
 
-#endif // ifndef __POWER_AVR_H__
-#endif // ifdef AVR
+void pin_write(uint8_t pin, uint8_t val);
+
+#endif // ifndef __PIN_H__
+

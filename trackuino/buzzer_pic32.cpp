@@ -17,8 +17,9 @@
 #ifdef PIC32MX
 
 #include "config.h"
-#include "buzzer_pic32.h"
-#include "pin_pic32.h"
+#include "buzzer.h"
+#include "pin.h"
+#include <p32xxxx.h>
 #include <plib.h>
 #include <WProgram.h>
 
@@ -26,18 +27,15 @@
 static const unsigned long PWM_PERIOD = F_CPU / 8 / BUZZER_FREQ;
 static const unsigned long ON_CYCLES = BUZZER_FREQ * BUZZER_ON_TIME;
 static const unsigned long OFF_CYCLES = BUZZER_FREQ * BUZZER_OFF_TIME;
-
-#if BUZZER_PIN == 9
-#  define BUZZER_OCxCON OC4CON
-#  define BUZZER_OCxRS OC4RS
+#if BUZZER_TYPE == 0  // active buzzer
+static const uint16_t DUTY_CYCLE = PWM_PERIOD;
 #endif
-
-#if BUZZER_PIN == 10
-#  define BUZZER_OCxCON OC5CON
-#  define BUZZER_OCxRS OC5RS
+#if BUZZER_TYPE == 1  // passive buzzer
+static const uint16_t DUTY_CYCLE = PWM_PERIOD / 2;
 #endif
 
 // Module variables
+static volatile bool is_buzzer_on;
 static volatile bool buzzing;
 static unsigned long alarm;
 
@@ -45,71 +43,58 @@ static unsigned long alarm;
 void buzzer_setup()
 {
   pinMode(BUZZER_PIN, OUTPUT);
+  pin_write(BUZZER_PIN, LOW);
   buzzing = false;
+  is_buzzer_on = false;
   alarm = 1;
 
   // There are two timers capable of PWM, 2 and 3. We are using 2 for the modem,
   // so use 3 for the buzzer.
-  // Turn timer 3 off before anything else (recommended in ref. guide 14.3.11)
-  T3CONbits.ON = 0;
-
-  // Set prescaler x8
-  T3CON = T3_PS_1_8;
-
-  // Clear the counter
-  TMR3 = 0;
-
-  // Set the period
-  PR3 = PWM_PERIOD;
-  
-  // Set up interrupt priority
-  IPC3bits.T3IP = 6;
-  
-  // Clear the T1 interrupt flag, so that the ISR doesn't go off immediatelly
-  IFS0bits.T3IF = 0;
-
-  // Enable T2 interrupt
-  IEC0bits.T3IE = 1;
-
-  // Set OCx to use timer2 (OCxCON defined above)
-  BUZZER_OCxCON = OC_ON | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE;
-
-  // Set output PWM to rest duty
-  BUZZER_OCxRS = PWM_PERIOD / 2;
+  OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
+  ConfigIntTimer3(T3_INT_ON | T3_INT_PRIOR_5);
 }
 
 void buzzer_on()
 {
-  // Turn the timer on
-  T3CONbits.ON = 1;
+  is_buzzer_on = true;
 }
 
 void buzzer_off()
 {
-  // Turn the timer off
-  T3CONbits.ON = 0;
-  
-  // Turn of the driver fet so that power is not wasted through the bleeder resistor
-  pin_write(BUZZER_PIN, LOW);
+  is_buzzer_on = false;
 }
 
 // Interrupt Service Routine for TIMER 3. This is used to switch between the
 // buzzing and quiet periods when ON_CYCLES or OFF_CYCLES are reached.
-extern "C" void __ISR (_TIMER_3_VECTOR, ipl6) T3_IntHandler (void)
+extern "C" void __ISR (_TIMER_3_VECTOR, ipl5) T3_IntHandler (void)
 {
   alarm--;
   if (alarm == 0) {
     buzzing = !buzzing;
-    if (buzzing) {
-      BUZZER_OCxRS = PWM_PERIOD / 2;
+    if (is_buzzer_on && buzzing) {
+      switch(BUZZER_PIN) {
+        case 9:
+          OpenOC4(OC_ON | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, DUTY_CYCLE, 0);
+          break;
+        case 10:
+          OpenOC5(OC_ON | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, DUTY_CYCLE, 0);
+          break;
+      }
       alarm = ON_CYCLES;
     } else {
-      BUZZER_OCxRS = 0;
+      switch(BUZZER_PIN) {
+        case 9:  CloseOC4(); break;
+        case 10: CloseOC5(); break;
+      }
       alarm = OFF_CYCLES;
+      pin_write(BUZZER_PIN, LOW);
     }
   }
   // Clear interrupt flag
-  IFS0bits.T3IF = 0;
+  // This will break other interrupts and millis() (read+clear+write race condition?)
+  //   IFS0bits.T3IF = 0; // DON'T!! 
+  // Instead:
+  mT3ClearIntFlag();
 }
 
 #endif // #ifdef PIC32MX

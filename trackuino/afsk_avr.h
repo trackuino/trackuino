@@ -16,27 +16,70 @@
  */
 
 #ifdef AVR
-#ifndef __MODEM_HAL_AVR_H__
-#define __MODEM_HAL_AVR_H__
 
-#include <avr/pgmspace.h>
+#ifndef __AFSK_AVR_H__
+#define __AFSK_AVR_H__
+
 #include <stdint.h>
+#include <avr/pgmspace.h>
 #include "config.h"
 
 // Exported consts
 extern const uint32_t MODEM_CLOCK_RATE;
 extern const uint8_t REST_DUTY;
 extern const uint16_t TABLE_SIZE;
+extern const uint32_t PLAYBACK_RATE;
 
-// Exported functions
-void modem_hal_setup();   // modem setup
-void modem_hal_start();   // start modulation
-void modem_hal_stop();    // stop modulation
-void modem_hal_output_sample(int phase);    // output sample
-#ifdef DEBUG_MODEM
-uint16_t modem_hal_timer_counter();         // timer counter
-int modem_hal_isr_overrun();                // has the isr overrun?
+// Exported vars
+extern const prog_uchar afsk_sine_table[];
+
+// Inline functions (this saves precious cycles in the ISR)
+#if AUDIO_PIN == 3
+#  define OCR2 OCR2B
+#endif
+#if AUDIO_PIN == 11
+#  define OCR2 OCR2A
 #endif
 
-#endif // ifndef __MODEM_HAL_AVR_H__
-#endif // ifdef AVR
+inline uint8_t afsk_read_sample(int phase)
+{
+  return pgm_read_byte_near(afsk_sine_table + phase);
+}
+
+inline void afsk_output_sample(uint8_t s)
+{
+  OCR2 = s;
+}
+
+#ifdef DEBUG_MODEM
+inline uint16_t afsk_timer_counter()
+{
+  uint16_t t = TCNT2;
+  if ((TIFR2 & _BV(TOV2)) && t < 128)
+    t += 256;
+  return t;
+}
+
+inline int afsk_isr_overrun()
+{
+  return (TIFR2 & _BV(TOV2));
+}
+#endif
+
+
+// Exported functions
+void afsk_setup();
+void afsk_send(const uint8_t *buffer, int len);
+void afsk_start();
+int afsk_busy();
+void afsk_isr();
+void afsk_timer_setup();
+void afsk_timer_start();
+void afsk_timer_stop();
+
+#ifdef DEBUG_MODEM
+void afsk_debug();
+#endif
+
+#endif
+#endif // AVR

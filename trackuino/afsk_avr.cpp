@@ -1,4 +1,4 @@
-/* trackuino copyright (C) 2010  EA5HAV Javi
+ /* trackuino copyright (C) 2010  EA5HAV Javi
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,18 +16,11 @@
  */
 #ifdef AVR
 
-#include <avr/interrupt.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include "modem.h"
-#include "modem_hal_avr.h"
+#include "config.h"
+#include "afsk_avr.h"
 
-#if AUDIO_PIN == 3
-#  define OCR2 OCR2B
-#endif
-#if AUDIO_PIN == 11
-#  define OCR2 OCR2A
-#endif
 
 // Module consts
 
@@ -46,7 +39,7 @@
 // This procudes a "warning: only initialized variables can be placed into
 // program memory area", which can be safely ignored:
 // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=34734
-PROGMEM static const prog_uchar modem_sine_table[512] = {
+PROGMEM extern const prog_uchar afsk_sine_table[512] = {
   127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 143, 144, 146, 147, 149, 150, 152, 153, 155, 156, 158, 
   159, 161, 163, 164, 166, 167, 168, 170, 171, 173, 174, 176, 177, 179, 180, 182, 183, 184, 186, 187, 188, 
   190, 191, 193, 194, 195, 197, 198, 199, 200, 202, 203, 204, 205, 207, 208, 209, 210, 211, 213, 214, 215, 
@@ -75,12 +68,17 @@ PROGMEM static const prog_uchar modem_sine_table[512] = {
 };
 
 // External consts
-const uint32_t MODEM_CLOCK_RATE = F_CPU; // 16 MHz
-const uint8_t REST_DUTY         = 127;
-const uint16_t TABLE_SIZE       = sizeof(modem_sine_table);
+
+extern const uint32_t MODEM_CLOCK_RATE = F_CPU; // 16 MHz
+extern const uint8_t REST_DUTY         = 127;
+extern const uint16_t TABLE_SIZE       = sizeof(afsk_sine_table);
+//extern const uint32_t PLAYBACK_RATE    = MODEM_CLOCK_RATE / 510;  // Phase correct PWM
+extern const uint32_t PLAYBACK_RATE    = MODEM_CLOCK_RATE / 256;  // Fast PWM
+
 
 // Exported functions
-void modem_hal_setup()
+
+void afsk_timer_setup()
 {
   // Set up Timer 2 to do pulse width modulation on the speaker
   // pin.
@@ -89,9 +87,16 @@ void modem_hal_setup()
   ASSR &= ~(_BV(EXCLK) | _BV(AS2));
   
   // Set fast PWM mode with TOP = 0xff: WGM22:0 = 3  (p.150)
+  // This allows 256 cycles per sample and gives 16M/256 = 62.5 KHz PWM rate
+  
   TCCR2A |= _BV(WGM21) | _BV(WGM20);
   TCCR2B &= ~_BV(WGM22);
-
+  
+  // Phase correct PWM with top = 0xff: WGM22:0 = 1 (p.152 and p.160))
+  // This allows 510 cycles per sample and gives 16M/510 = ~31.4 KHz PWM rate
+  //TCCR2A = (TCCR2A | _BV(WGM20)) & ~_BV(WGM21);
+  //TCCR2B &= ~_BV(WGM22);
+  
 #if AUDIO_PIN == 11
   // Do non-inverting PWM on pin OC2A (arduino pin 11) (p.159)
   // OC2B (arduino pin 3) stays in normal port operation:
@@ -113,7 +118,7 @@ void modem_hal_setup()
   OCR2 = REST_DUTY;
 }
 
-void modem_hal_start()
+void afsk_timer_start()
 {
   // Clear the overflow flag, so that the interrupt doesn't go off
   // immediately and overrun the next one (p.163).
@@ -123,40 +128,13 @@ void modem_hal_start()
   TIMSK2 |= _BV(TOIE2);
 }
 
-void modem_hal_stop()
+void afsk_timer_stop()
 {
   // Output 0v (after DC coupling)
   OCR2 = REST_DUTY;
 
   // Disable playback interrupt
   TIMSK2 &= ~_BV(TOIE2);
-}
-
-void modem_hal_output_sample(int phase)
-{
-  OCR2 = pgm_read_byte_near(modem_sine_table + phase);
-}
-
-#ifdef DEBUG_MODEM
-uint16_t modem_hal_timer_counter()
-{
-  return (uint16_t) TCNT2;
-  // Signal overrun if we received an interrupt while processing this one
-  if (TIFR2 & ~_BV(TOV2)) {
-    t += 256;
-  }
-}
-
-int modem_hal_isr_overrun()
-{
-  return (TIFR2 & ~_BV(TOV2));
-}
-#endif
-
-// This is the modem ISR
-ISR(TIMER2_OVF_vect)
-{
-  modem_playback();
 }
 
 

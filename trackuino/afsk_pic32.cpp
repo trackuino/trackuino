@@ -17,9 +17,7 @@
 #ifdef PIC32MX
 
 #include "config.h"
-#include "modem.h"
-#include "modem_hal_pic32.h"
-#include "pin_pic32.h"
+#include "pin.h"
 #include <p32xxxx.h>
 #include <plib.h>
 #include <WProgram.h>
@@ -33,7 +31,7 @@
 #endif
 
 // Module constants
-static const uint8_t modem_sine_table[512] = {
+extern const uint8_t afsk_sine_table[512] = {
   127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 143, 144, 146, 147, 149, 150, 152, 153, 155, 156, 158, 
   159, 161, 163, 164, 166, 167, 168, 170, 171, 173, 174, 176, 177, 179, 180, 182, 183, 184, 186, 187, 188, 
   190, 191, 193, 194, 195, 197, 198, 199, 200, 202, 203, 204, 205, 207, 208, 209, 210, 211, 213, 214, 215, 
@@ -62,94 +60,43 @@ static const uint8_t modem_sine_table[512] = {
 };
 
 // External constants
-const uint32_t MODEM_CLOCK_RATE = F_CPU / 2;  // 40 MHz
-const uint8_t REST_DUTY         = 127;
-const uint16_t TABLE_SIZE       = sizeof(modem_sine_table);
+extern const uint32_t MODEM_CLOCK_RATE = F_CPU / 2;  // 40 MHz
+extern const uint8_t REST_DUTY         = 127;
+extern const uint16_t TABLE_SIZE       = sizeof(afsk_sine_table);
+extern const uint32_t PLAYBACK_RATE    = MODEM_CLOCK_RATE / 256;
 
 
 // External functions
-void modem_hal_setup()
+void afsk_timer_setup()
 {
-  // digitalWrites (to turn on/off sensors, mainly) disrupt the timers
-  // (see wiring_digital.c and look for 'digital_pin_to_timer' in
-  // variants/Uno32/Board_Data.c). We need to make sure we don't use
-  // digitalWrite on any pin that is related to timer 2. Note that
-  // other timers are not an option since the only PWM capable timers
-  // are 2 and 3 and 3 is already used for the buzzer.
-  
   OpenTimer2(T2_ON | T2_PS_1_2, 0xFF); 
   OpenOC1(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0, 0);
+  SetDCOC1PWM(REST_DUTY);
 
-  // The above could also be accomplished by... ?
-  /*
-  T2CONbits.ON = 0; // Turn timer 2 off before anything else (recommended in ref. guide 14.3.11)
-  T2CON = T2_PS_1_8; // Set prescaler x8
-  TMR2 = 0; // Clear the counter
-  PR2 = 0xFF; // Set the period
-  IPC2bits.T2IP = 6; // Set T2 interrupt priority to 6
-  OCxCON = OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE;   // Set OCx to use timer2 (OCxCON defined in .h)
-  T2CONbits.ON = 1; // Turn the timer on
-  OCxRS = REST_DUTY;   // Set output PWM to rest duty
-  */
   // Use pin 43 on the Uno32 as PTT indicator
   pinMode(43, OUTPUT);
  
 }
 
-void modem_hal_start()
+void afsk_timer_start()
 {
+  // Prepare timer 2
   ConfigIntTimer2(T2_INT_ON | T2_INT_PRIOR_6);
-  
-  // The above could also be accomplished by ... ?
-  /*  
-  IFS0bits.T2IF = 0; // Clear the T2 interrupt flag, so that the ISR doesn't go off immediatelly
-  IEC0bits.T2IE = 1;   // Enable T2 interrupt
-  */
 
   // Turn PTT led on
   pin_write(43, HIGH);
 }
 
-void modem_hal_stop()
+void afsk_timer_stop()
 {
   // Return to rest duty cycle
   SetDCOC1PWM(REST_DUTY);
-  //OCxRS = REST_DUTY;
 
   // Disable playback interrupt
   mT2IntEnable(0);
-  //IEC0bits.T2IE = 0;
 
   // Turn PTT led off
   pin_write(43, LOW);
-}
-
-void modem_hal_output_sample(int phase)
-{
-  SetDCOC1PWM(modem_sine_table[phase]);
-  //OCxRS = modem_sine_table[phase];
-}
-
-#ifdef DEBUG_MODEM
-uint16_t modem_hal_timer_counter()
-{
-  return (uint16_t) TMR2;
-}
-
-int modem_hal_isr_overrun()
-{
-  return (IFS0bits.T2IF);
-}
-#endif
-
-// This is called at PLAYBACK_RATE Hz to load the next sample.
-extern "C" void __ISR(_TIMER_2_VECTOR, ipl6) T2_IntHandler (void)
-{
-  // Clear interrupt. By clearing the IF *before* handling the
-  // interrupt we can test for overruns (the IF would turn back on).
-  mT2ClearIntFlag();
-
-  modem_playback();
 }
 
 

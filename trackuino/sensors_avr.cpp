@@ -24,6 +24,7 @@
 #ifdef AVR
 
 #include "config.h"
+#include "pin.h"
 #include "sensors_avr.h"
 #include <WProgram.h>
 
@@ -83,25 +84,26 @@ long sensors_internal_temp()
 
 int sensors_lm60(int powerPin, int readPin)
 {
-  digitalWrite(powerPin, HIGH);   // Turn the LM60 on
+  pin_write(powerPin, HIGH);      // Turn the LM60 on
   analogReference(INTERNAL);      // Ref=1.1V. Okay up to 108 degC (424 + 6.25*108 = 1100mV)
   analogRead(readPin);            // Disregard the 1st conversion after changing ref (p.256)
+  delay(10);                      // This is needed when switching references
   int adc = analogRead(readPin);  // Real read
-  digitalWrite(powerPin, LOW);    // Turn the LM60 off
+  pin_write(powerPin, LOW);       // Turn the LM60 off
+
   int mV = 1100L * adc / 1024L;   // Millivolts
-  
-  switch (TEMP_UNIT)//Added by: Kyle Crockett
-  {
-	case 1://C
-		return (4L * (mV - 424) / 25)+ CALIBRATION_VAL ;    // Vo(mV) = (6.25*T) + 424 -> T = (Vo - 424) * 100 / 625
-	break;
-	case 2://K
-		return (4L * (mV - 424) / 25) + 273 + CALIBRATION_VAL; //C + 273 = K
-	break;
-	case 3://F
-		return (36L * (mV - 424) / 125) + 32+ CALIBRATION_VAL; // (9/5)C + 32 = F
-	break;
-  };
+
+  switch(TEMP_UNIT) {
+    case 1: // C
+      // Vo(mV) = (6.25*T) + 424 -> T = (Vo - 424) * 100 / 625
+      return (4L * (mV - 424) / 25) + CALIBRATION_VAL;
+    case 2: // K
+      // C + 273 = K
+      return (4L * (mV - 424) / 25) + 273 + CALIBRATION_VAL;
+    case 3: // F
+      // (9/5)C + 32 = F
+      return (36L * (mV - 424) / 125) + 32 + CALIBRATION_VAL;
+  }
 }
 
 int sensors_ext_lm60()
@@ -114,36 +116,20 @@ int sensors_int_lm60()
   return sensors_lm60(INTERNAL_LM60_VS_PIN, INTERNAL_LM60_VOUT_PIN);
 }
 
-
-int sensors_humidity()
+int sensors_vin()
 {
-  // TO DO
-  return 0;
+  analogReference(DEFAULT);      // Ref=5V
+  analogRead(VMETER_PIN);        // Disregard the 1st conversion after changing ref (p.256)
+  delay(10);                     // This is needed when switching references
+
+  uint16_t adc = analogRead(VMETER_PIN); 
+  uint16_t mV = 5000L * adc / 1024;
+   
+  // Vin = mV * R2 / (R1 + R2)
+  int vin = (uint32_t)mV * (VMETER_R1 + VMETER_R2) / VMETER_R2;
+  return vin;
 }
 
-int sensors_pressure()
-{
-  // TO DO
-  return 0;
-}
-
-int sensors_uv_ray()
-{
-  // Nice to have at 40 km altitude
-  return 0;
-}
-
-int sensors_gamma_ray()
-{
-  // http://www.cooking-hacks.com/index.php/documentation/tutorials/geiger-counter-arduino-radiation-sensor-board
-  return 0;
-}
-
-int sensors_graviton()
-{
-  // Wait, what?
-  return 0;
-}
 
 #endif
 #endif // ifdef AVR

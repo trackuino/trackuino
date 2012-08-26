@@ -15,20 +15,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef __RADIO_MX146_H__
-#define __RADIO_MX146_H__
+#ifndef __BUZZER_H__
+#define __BUZZER_H__
 
-#include "radio.h"
+void buzzer_setup();
+void buzzer_on();
+void buzzer_off();
 
-class RadioMx146 : public Radio {
-  public:
-    virtual void setup();
-    virtual void ptt_on();
-    virtual void ptt_off();
-  private:
-    void send_cmd(const char *cmd, int cmd_len, char *res, int res_len);
-    void set_freq(unsigned long freq);
-    int query_temp();
-};
-
-#endif
+#endif // ifndef __BUZZER_H__

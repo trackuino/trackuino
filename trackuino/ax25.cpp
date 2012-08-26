@@ -17,13 +17,19 @@
 
 #include "ax25.h"
 #include "config.h"
-#include "modem.h"
+#include "afsk_avr.h"
+#include "afsk_pic32.h"
 #include <stdint.h>
 #include <WProgram.h>
 
+// Module constants
+static const unsigned int MAX_PACKET = 512;  // bytes
+
 // Module globals
-uint16_t crc;
-uint8_t ones_in_a_row;
+static uint16_t crc;
+static uint8_t ones_in_a_row;
+static uint8_t packet[MAX_PACKET];
+static unsigned int packet_size;
 
 // Module functions
 static void
@@ -46,17 +52,17 @@ send_byte(uint8_t a_byte)
     update_crc(a_bit);
     if (a_bit) {
       // Next bit is a '1'
-      if (modem_packet_size >= MODEM_MAX_PACKET * 8)  // Prevent buffer overrun
+      if (packet_size >= MAX_PACKET * 8)  // Prevent buffer overrun
         return;
-      modem_packet[modem_packet_size >> 3] |= (1 << (modem_packet_size & 7));
-      modem_packet_size++;
+      packet[packet_size >> 3] |= (1 << (packet_size & 7));
+      packet_size++;
       if (++ones_in_a_row < 5) continue;
     }
     // Next bit is a '0' or a zero padding after 5 ones in a row
-    if (modem_packet_size >= MODEM_MAX_PACKET * 8)    // Prevent buffer overrun
+    if (packet_size >= MAX_PACKET * 8)    // Prevent buffer overrun
       return;
-    modem_packet[modem_packet_size >> 3] &= ~(1 << (modem_packet_size & 7));
-    modem_packet_size++;
+    packet[packet_size >> 3] &= ~(1 << (packet_size & 7));
+    packet_size++;
     ones_in_a_row = 0;
   }
 }
@@ -77,13 +83,13 @@ ax25_send_flag()
 {
   uint8_t flag = 0x7e;
   int i;
-  for (i = 0; i < 8; i++, modem_packet_size++) {
-    if (modem_packet_size >= MODEM_MAX_PACKET * 8)  // Prevent buffer overrun
+  for (i = 0; i < 8; i++, packet_size++) {
+    if (packet_size >= MAX_PACKET * 8)  // Prevent buffer overrun
       return;
     if ((flag >> i) & 1)
-      modem_packet[modem_packet_size >> 3] |= (1 << (modem_packet_size & 7));
+      packet[packet_size >> 3] |= (1 << (packet_size & 7));
     else
-      modem_packet[modem_packet_size >> 3] &= ~(1 << (modem_packet_size & 7));
+      packet[packet_size >> 3] &= ~(1 << (packet_size & 7));
   }
 }
 
@@ -100,7 +106,7 @@ void
 ax25_send_header(const struct s_address *addresses, int num_addresses)
 {
   int i, j;
-  modem_packet_size = 0;
+  packet_size = 0;
   ones_in_a_row = 0;
   crc = 0xffff;
   
@@ -181,7 +187,8 @@ void
 ax25_flush_frame()
 {
   // Key the transmitter and send the frame
-  modem_flush_frame();
+  afsk_send(packet, packet_size);
+  afsk_start();
 }
 
 

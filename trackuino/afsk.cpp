@@ -29,21 +29,19 @@
  */
 
 #include "config.h"
-#include "modem.h"
-#include "modem_hal_avr.h"
-#include "modem_hal_pic32.h"
-#include "pin_pic32.h"
-#include "radio_mx146.h"
+#include "afsk_avr.h"
+#include "afsk_pic32.h"
+#include "pin.h"
 #include "radio_hx1.h"
 #include <WProgram.h>
 #include <stdint.h>
 
 // Module consts
-static const uint32_t PLAYBACK_RATE   = MODEM_CLOCK_RATE / 256;
 static const uint16_t BAUD_RATE       = 1200;
 static const uint8_t SAMPLES_PER_BAUD = (PLAYBACK_RATE / BAUD_RATE);
 static const uint16_t PHASE_DELTA_1200 = (((TABLE_SIZE * 1200L) << 7) / PLAYBACK_RATE); // Fixed point 9.7
 static const uint16_t PHASE_DELTA_2200 = (((TABLE_SIZE * 2200L) << 7) / PLAYBACK_RATE);
+
 
 // Module globals
 volatile static unsigned char current_byte;
@@ -63,55 +61,58 @@ volatile static unsigned char slow_sample_in_baud;
 #endif
 
 // The radio (class defined in config.h)
-static RADIO_CLASS radio;
+static RadioHx1 radio;
 
-// Exported globals
-volatile unsigned int modem_packet_size = 0;
-volatile unsigned char modem_packet[MODEM_MAX_PACKET];
+volatile static unsigned int afsk_packet_size = 0;
+volatile static const uint8_t *afsk_packet;
 
-void modem_setup()
+// Exported functions
+
+void afsk_setup()
 {
-  // Configure pins
-  pinMode(PTT_PIN, OUTPUT);
-  pin_write(PTT_PIN, LOW);
-  pinMode(AUDIO_PIN, OUTPUT);
-
   // Start radio
   radio.setup();
-  
-  // CPU-specific setup
-  modem_hal_setup();
+}
+
+void afsk_send(const uint8_t *buffer, int len)
+{
+  afsk_packet_size = len;
+  afsk_packet = buffer;
 }
 
 int
-modem_busy()
+afsk_busy()
 {
   return go;
 }
 
-void modem_flush_frame()
+void afsk_start()
 {
   phase_delta = PHASE_DELTA_1200;
   phase = 0;
   packet_pos = 0;
   current_sample_in_baud = 0;
   go = true;
+
+  // Start timer (CPU-specific)
+  afsk_timer_setup();
   
   // Key the radio
   radio.ptt_on();
 
-  // Start modem (CPU-specific)
-  modem_hal_start();
+  // Start transmission
+  afsk_timer_start();
 }
 
 // This is called at PLAYBACK_RATE Hz to load the next sample.
-void modem_playback()
+void afsk_isr()
 {
   if (go) {
+
     // If done sending packet
-    if (packet_pos == modem_packet_size) {
+    if (packet_pos == afsk_packet_size) {
       go = false;         // End of transmission
-      modem_hal_stop();   // Disable modem
+      afsk_timer_stop();  // Disable modem
       radio.ptt_off();    // Release PTT
       goto end_isr;       // Done, gather ISR stats
     }
@@ -119,7 +120,7 @@ void modem_playback()
     // If sent SAMPLES_PER_BAUD already, go to the next bit
     if (current_sample_in_baud == 0) {    // Load up next bit
       if ((packet_pos & 7) == 0)          // Load up next byte
-        current_byte = modem_packet[packet_pos >> 3];
+        current_byte = afsk_packet[packet_pos >> 3];
       else
         current_byte = current_byte / 2;  // ">>1" forces int conversion
       if ((current_byte & 1) == 0) {
@@ -129,8 +130,9 @@ void modem_playback()
     }
     
     phase += phase_delta;
-    modem_hal_output_sample((phase >> 7) & (TABLE_SIZE - 1));
-    
+    uint8_t s = afsk_read_sample((phase >> 7) & (TABLE_SIZE - 1));
+    afsk_output_sample(s);
+
     if(++current_sample_in_baud == SAMPLES_PER_BAUD) {
       current_sample_in_baud = 0;
       packet_pos++;
@@ -139,8 +141,12 @@ void modem_playback()
  
 end_isr:
 #ifdef DEBUG_MODEM
+  // Track overruns
+  if (afsk_isr_overrun())
+    overruns++;
+
   isr_calls++;
-  uint16_t t = modem_hal_timer_counter();
+  uint16_t t = afsk_timer_counter();
 
   // Track slowest execution time in slow_isr_time
   if (t > slow_isr_time) {
@@ -156,10 +162,6 @@ end_isr:
   
   // Track average time
   avg_isr_time += t;
-
-  // Track overruns
-  if (modem_hal_isr_overrun())
-    overruns++;
 #endif
 
   return;
@@ -167,7 +169,7 @@ end_isr:
 }
 
 #ifdef DEBUG_MODEM
-void modem_debug()
+void afsk_debug()
 {
   Serial.print("t(fast,avg,slow)=");
   Serial.print(fast_isr_time);
@@ -181,7 +183,7 @@ void modem_debug()
   Serial.print("; pos=");
   Serial.print(slow_packet_pos);
   Serial.print("/");
-  Serial.print(modem_packet_size);
+  Serial.print(afsk_packet_size);
   Serial.print("; sam=");
   Serial.print(slow_sample_in_baud, DEC);
   Serial.print("; overruns/isr=");

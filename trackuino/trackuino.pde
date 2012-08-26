@@ -20,33 +20,33 @@
 // real Arduino IDE for Arduino builds. Optionally complain to the Mpide
 // authors to fix the broken macro.
 #if (ARDUINO + 0) == 0
-#error "Oops! We need the real Arduino IDE (version 22+) for Arduino builds."
+#error "Oops! We need the real Arduino IDE (version 22 or 23) for Arduino builds."
 #error "See trackuino.pde for details on this"
 
 // Refuse to compile on arduino version 21 or lower. 22 includes an 
 // optimization of the USART code that is critical for real-time operation
 // of the AVR code.
 #elif (ARDUINO + 0) < 22
-#error "Oops! We need Arduino 22"
+#error "Oops! We need Arduino 22 or 23"
 #error "See trackuino.pde for details on this"
+
+// Arduino 1.0+ introduced backwards-incompatible changes in the serial lib.
+#elif (ARDUINO + 1) >= 100
+#error "Ooops! We don't support Arduino 1.0+ (yet). Please use 22 or 23"
+#error "See trackuino.pde for details on this"
+
 #endif
 
 
-
 // Trackuino custom libs
-#include "aprs.h"
-#include "ax25.h"
-#include "buzzer_avr.h"
-#include "buzzer_pic32.h"
 #include "config.h"
+#include "afsk_avr.h"
+#include "afsk_pic32.h"
+#include "aprs.h"
+#include "buzzer.h"
 #include "gps.h"
-#include "modem.h"
-#include "pin_pic32.h"
-#include "power_avr.h"
-#include "power_pic32.h"
-#include "radio.h"
-#include "radio_hx1.h"
-#include "radio_mx146.h"
+#include "pin.h"
+#include "power.h"
 #include "sensors_avr.h"
 #include "sensors_pic32.h"
 
@@ -54,7 +54,11 @@
 #include <Wire.h>
 #include <WProgram.h>
 
-uint32_t next_tx_millis;
+// Module constants
+static const uint32_t VALID_POS_TIMEOUT = 2000;  // ms
+
+// Module variables
+static int32_t next_aprs = 0;
 
 
 void setup()
@@ -66,50 +70,73 @@ void setup()
 #ifdef DEBUG_RESET
   Serial.println("RESET");
 #endif
-  modem_setup();
-  buzzer_setup();
-  sensors_setup();
-  gps_setup();
 
-  // Schedule the next transmission within APRS_DELAY ms
-  next_tx_millis = millis() + APRS_DELAY;
-  
-  // TODO: alternate beeping while gps gets a fix
-  //buzzer_on();
+  buzzer_setup();
+  afsk_setup();
+  gps_setup();
+  sensors_setup();
+
+#ifdef DEBUG_SENS
+  Serial.print("Ti=");
+  Serial.print(sensors_int_lm60());
+  Serial.print(", Te=");
+  Serial.print(sensors_ext_lm60());
+  Serial.print(", Vin=");
+  Serial.println(sensors_vin());
+#endif
+
+  // Do not start until we get a valid time reference
+  // for slotted transmissions.
+  if (APRS_SLOT >= 0) {
+    do {
+      while (! Serial.available())
+        power_save();
+    } while (! gps_decode(Serial.read()));
+    
+    next_aprs = millis() + 1000 *
+      (APRS_PERIOD - (gps_seconds + APRS_PERIOD - APRS_SLOT) % APRS_PERIOD);
+  }
+  else {
+    next_aprs = millis();
+  }  
+  // TODO: beep while we get a fix, maybe indicating the number of
+  // visible satellites by a series of short beeps?
 }
 
-#define read_count(dest) __asm__ __volatile__("mfc0 %0,$9" : "=r" (dest))
-#define read_comp(dest) __asm__ __volatile__("mfc0 %0,$11" : "=r" (dest))
-#define read_exc(dest) __asm__ __volatile__("mfc0 %0,$13" : "=r" (dest))
-#define read_status(dest) __asm__ __volatile__("mfc0 %0,$12" : "=r" (dest))
+void get_pos()
+{
+  // Get a valid position from the GPS
+  int valid_pos = 0;
+  uint32_t timeout = millis();
+  do {
+    if (Serial.available())
+      valid_pos = gps_decode(Serial.read());
+  } while ( (millis() - timeout < VALID_POS_TIMEOUT) && ! valid_pos) ;
+
+  if (valid_pos) {
+    if (gps_altitude > BUZZER_ALTITUDE) {
+      buzzer_off();   // In space, no one can hear you buzz
+    } else {
+      buzzer_on();
+    }
+  }
+}
 
 void loop()
 {
-  int c;
-
-  if ((int32_t)(millis() - next_tx_millis) >= 0) {
-
-    // Show modem ISR stats from the previous transmission
-#ifdef DEBUG_MODEM
-    modem_debug();
-#endif
-
-    // Build and send a new aprs frame
+  // Time for another APRS frame
+  if ((int32_t) (millis() - next_aprs) >= 0) {
+    get_pos();
     aprs_send();
-    next_tx_millis += APRS_PERIOD;
+    next_aprs += APRS_PERIOD * 1000L;
+    while (afsk_busy()) ;
+      power_save();
+
+#ifdef DEBUG_MODEM
+    // Show modem ISR stats from the previous transmission
+    afsk_debug();
+#endif
   }
 
-  if (Serial.available()) {
-    c = Serial.read();
-    if (gps_decode(c)) {
-/*
-      if (gps_altitude > BUZZER_ALTITUDE)
-        buzzer_off();   // In space, no one can hear you buzz
-      else
-        buzzer_on();
-*/
-    }
-  } else {
-    power_save();
-  }
+  power_save(); // Incoming GPS data or interrupts will wake us up
 }

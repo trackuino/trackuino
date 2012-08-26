@@ -17,25 +17,27 @@
 #ifdef AVR
 
 #include "config.h"
-#include "buzzer_avr.h"
+#include "buzzer.h"
+#include "pin.h"
 #include <WProgram.h>
 #include <stdint.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-#if BUZZER_PIN == 9
-#  define OCR1 OCR1A
-#endif
-#if BUZZER_PIN == 10
-#  define OCR1 OCR1B
-#endif
 
 // Module constants
 static const unsigned long PWM_PERIOD = F_CPU / BUZZER_FREQ;
 static const unsigned long ON_CYCLES = BUZZER_FREQ * BUZZER_ON_TIME;
 static const unsigned long OFF_CYCLES = BUZZER_FREQ * BUZZER_OFF_TIME;
+#if BUZZER_TYPE == 0  // active buzzer
+static const uint16_t DUTY_CYCLE = PWM_PERIOD;
+#endif
+#if BUZZER_TYPE == 1  // passive buzzer
+static const uint16_t DUTY_CYCLE = PWM_PERIOD / 2;
+#endif
 
 // Module variables
+static volatile bool is_buzzer_on;
 static volatile bool buzzing;
 static volatile unsigned long alarm;
 
@@ -43,7 +45,9 @@ static volatile unsigned long alarm;
 void buzzer_setup()
 {
   pinMode(BUZZER_PIN, OUTPUT);
+  pin_write(BUZZER_PIN, LOW);
   buzzing = false;
+  is_buzzer_on = false;
   alarm = 1;
 
   // Top is ICR1 (WGM1=14), p.135
@@ -53,23 +57,21 @@ void buzzer_setup()
   // Set top to PWM_PERIOD
   ICR1 = PWM_PERIOD;
 
-  // Set duty cycle = 50%
-  OCR1 = PWM_PERIOD / 2;
-
   // Enable interrupts on timer overflow
   TIMSK1 |= _BV(TOIE1);
-}
 
-void buzzer_on()
-{
   // Start the timer, no prescaler (CS1=1)
   TCCR1B |= _BV(CS10);
 }
 
+void buzzer_on()
+{
+  is_buzzer_on = true;
+}
+
 void buzzer_off()
 {
-  // Stop the timer (CS1=0)
-  TCCR1B &= ~(_BV(CS10) | _BV(CS11) | _BV(CS12));
+  is_buzzer_on = false;
 }
 
 // Interrupt Service Routine for TIMER1. This is used to switch between the
@@ -79,25 +81,27 @@ ISR (TIMER1_OVF_vect)
   alarm--;
   if (alarm == 0) {
     buzzing = !buzzing;
-    if (buzzing) {
-#if BUZZER_PIN == 9
-      // Non-inverting pin 9 (COM1A=2), p.135
-      TCCR1A |= _BV(COM1A1);
-#endif
-#if BUZZER_PIN == 10
-      // Non-inverting pin 10 (COM1B=2), p.135
-      TCCR1A |= _BV(COM1B1)
-#endif
+    if (is_buzzer_on && buzzing) {
+      switch(BUZZER_PIN) {
+        case 9:
+          // Non-inverting pin 9 (COM1A=2), p.135
+          TCCR1A |= _BV(COM1A1);
+          OCR1A = DUTY_CYCLE;
+          break;
+        case 10:
+          // Non-inverting pin 10 (COM1B=2), p.135
+          TCCR1A |= _BV(COM1B1);
+          OCR1B = DUTY_CYCLE;
+          break;
+      }
       alarm = ON_CYCLES;
     } else {
-#if BUZZER_PIN == 9
-      // Disable PWM on pin 9
-      TCCR1A &= ~_BV(COM1A1);
-#endif
-#if BUZZER_PIN == 10
-      // Disable PWM on pin 10
-      TCCR1A &= ~_BV(COM1B1);
-#endif
+      switch(BUZZER_PIN) {
+        // Disable PWM on pin 9/10
+        case 9:  TCCR1A &= ~_BV(COM1A1); break;
+        case 10: TCCR1A &= ~_BV(COM1B1); break;
+      }
+      pin_write(BUZZER_PIN, LOW);
       alarm = OFF_CYCLES;
     }
   }

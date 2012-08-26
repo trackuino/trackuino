@@ -19,8 +19,7 @@
 #include <plib.h>
 #include <WProgram.h>
 #include "config.h"
-#include "pin_pic32.h"
-#include "power_pic32.h"
+#include "pin.h"
 
 void power_save()
 {

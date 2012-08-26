@@ -14,14 +14,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#ifdef AVR
 
-#ifdef PIC32MX
-#ifndef __PIN_PIC32_H__
-#define __PIN_PIC32_H__
+#include "afsk_avr.h"
+#include <avr/interrupt.h>
 
-#include <stdint.h>
+// This is the timer 2 interrupt service routine (ISR). Multiple
+// modems can be operated from here.
+ISR(TIMER2_OVF_vect)
+{
+  // Call modem ISRs:
+  afsk_isr();
+}
 
-void pin_write(uint8_t pin, uint8_t val);
-
-#endif // ifndef __PIN_PIC32_H__
 #endif // ifdef PIC32MX

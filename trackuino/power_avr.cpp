@@ -21,7 +21,8 @@
 #include <avr/sleep.h>
 #include <WProgram.h>
 #include "config.h"
-#include "power_avr.h"
+#include "pin.h"
+#include "power.h"
 
 void disable_bod_and_sleep()
 {
@@ -63,9 +64,9 @@ void power_save()
   power_spi_disable();
   power_twi_disable();
 
-  digitalWrite(LED_PIN, LOW);
+  pin_write(LED_PIN, LOW);
   sleep_mode();    // Go to sleep
-  digitalWrite(LED_PIN, HIGH);
+  pin_write(LED_PIN, HIGH);
   
   sleep_disable();  // Resume after wake up
   power_all_enable();
