@@ -113,6 +113,8 @@ void afsk_timer_setup()
   
   // No prescaler (p.162)
   TCCR2B = (TCCR2B & ~(_BV(CS22) | _BV(CS21))) | _BV(CS20);
+  // prescaler x8 for slow-mo testing
+  //TCCR2B = (TCCR2B & ~(_BV(CS22) | _BV(CS20))) | _BV(CS21);
 
   // Set initial pulse width to the rest position (0v after DC decoupling)
   OCR2 = REST_DUTY;
@@ -136,6 +138,7 @@ void afsk_timer_stop()
   // Disable playback interrupt
   TIMSK2 &= ~_BV(TOIE2);
 }
+
 
 
 #endif // ifdef AVR

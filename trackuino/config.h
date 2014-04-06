@@ -80,7 +80,7 @@
 // and set APRS_SLOT so that the packets are spaced equally in time.
 // Eg. for two balloons and APRS_PERIOD = 60, set APRS_SLOT to 0 and 30, 
 // respectively. The first balloon will transmit at 00:00:00, 00:01:00, 
-// 00:02:00, etc. amd the second balloon will transmit at 00:00:30, 00:01:30,
+// 00:02:00, etc. and the second balloon will transmit at 00:00:30, 00:01:30,
 // 00:02:30, etc.
 #define APRS_SLOT     0     // seconds. -1 disables slotted transmissions
 #define APRS_PERIOD   60    // seconds
@@ -99,6 +99,12 @@
 // Pin 11 doubles as MOSI, so I suggest using pin 3 for PWM and leave 11 free
 // in case you ever want to interface with an SPI device.
 #define AUDIO_PIN       3
+
+// Pre-emphasize the 2200 tone by 6 dB. This is actually done by 
+// de-emphasizing the 1200 tone by 6 dB and it might greatly improve
+// reception at the expense of poorer FM deviation, which translates
+// into an overall lower amplitude of the received signal. 1 = yes, 0 = no.
+#define PRE_EMPHASIS    1
 
 // --------------------------------------------------------------------------
 // Radio config (radio_hx1.cpp)
@@ -192,6 +198,12 @@
 
 // Debug info includes printouts from different modules to aid in testing and
 // debugging.
+//
+// Some of the DEBUG modes will cause invalid modulation, so do NOT forget
+// to turn them off when you put this to real use.
+//
+// Particularly the DEBUG_AFSK will print every PWM sample out the serial
+// port, causing extreme delays in the actual AFSK transmission.
 // 
 // 1. To properly receive debug information, only connect the Arduino RX pin 
 //    to the GPS TX pin, and leave the Arduino TX pin disconnected. 
@@ -205,6 +217,7 @@
 // #define DEBUG_GPS    // GPS sentence dump and checksum validation
 // #define DEBUG_AX25   // AX.25 frame dump
 // #define DEBUG_MODEM  // Modem ISR overrun and profiling
+// #define DEBUG_AFSK   // AFSK (modulation) output
 // #define DEBUG_RESET  // AVR reset
 // #define DEBUG_SENS   // Sensors
 

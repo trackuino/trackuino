@@ -68,6 +68,7 @@ void buzzer_off()
 // buzzing and quiet periods when ON_CYCLES or OFF_CYCLES are reached.
 extern "C" void __ISR (_TIMER_3_VECTOR, ipl5) T3_IntHandler (void)
 {
+  interrupts();   // allow other interrupts (ie. modem)
   alarm--;
   if (alarm == 0) {
     buzzing = !buzzing;

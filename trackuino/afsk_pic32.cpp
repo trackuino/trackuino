@@ -27,7 +27,7 @@
 #  define OCxCON OC1CON
 #endif
 #if AUDIO_PIN == 11
-#  error Oops! The Uno32 can't do PWM on pin 11
+#  error Oops! The Uno32 cannot do PWM on pin 11
 #endif
 
 // Module constants

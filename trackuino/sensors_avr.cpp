@@ -26,7 +26,11 @@
 #include "config.h"
 #include "pin.h"
 #include "sensors_avr.h"
-#include <WProgram.h>
+#if (ARDUINO + 1) >= 100
+#  include <Arduino.h>
+#else
+#  include <WProgram.h>
+#endif
 
 /*
  * sensors_aref: measure an external voltage hooked up to the AREF pin,

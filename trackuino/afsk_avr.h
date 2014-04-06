@@ -24,6 +24,8 @@
 #include <avr/pgmspace.h>
 #include "config.h"
 
+#define AFSK_ISR ISR(TIMER2_OVF_vect)
+
 // Exported consts
 extern const uint32_t MODEM_CLOCK_RATE;
 extern const uint8_t REST_DUTY;
@@ -51,6 +53,11 @@ inline void afsk_output_sample(uint8_t s)
   OCR2 = s;
 }
 
+inline void afsk_clear_interrupt_flag()
+{
+  // atmegas don't need this as opposed to pic32s.
+}
+
 #ifdef DEBUG_MODEM
 inline uint16_t afsk_timer_counter()
 {
@@ -71,12 +78,11 @@ inline int afsk_isr_overrun()
 void afsk_setup();
 void afsk_send(const uint8_t *buffer, int len);
 void afsk_start();
-int afsk_busy();
+bool afsk_flush();
 void afsk_isr();
 void afsk_timer_setup();
 void afsk_timer_start();
 void afsk_timer_stop();
-
 #ifdef DEBUG_MODEM
 void afsk_debug();
 #endif
