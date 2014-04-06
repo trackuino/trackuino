@@ -1,3 +1,15 @@
+Version 1.5 - 2014/04/06
+------------------------
+
+ * FIX: Allow compilation on Arduino 1.0+
+
+ * FIX: Added pre-emphasis flag, makes the signal more intelligible
+
+ * FIX: Revamped modem code to avoid ISR overruns
+
+ * FIX: improve baudrate accuracy
+
+
 Version 1.4 - 2012/08/26
 ------------------------
 
