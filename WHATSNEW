@@ -1,3 +1,11 @@
+Version 1.51 - 2014/07/25
+-------------------------
+
+ * FIX: Compilation in Arduino 1.5.7 (deprecation of prog_uchar)
+
+ * FIX: Renamed .pde -> .ino
+
+
 Version 1.5 - 2014/04/06
 ------------------------
 
