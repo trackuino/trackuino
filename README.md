@@ -1,7 +1,4 @@
-Trackuino
-=========
-
-![Shield](https://github.com/trackuino/trackuino/wiki/img/trackuino-2.2-640px.jpg)
+![Banner](https://github.com/trackuino/trackuino/wiki/img/trackuino-banner-narrow.png)
 
 This is the firmware for Trackuino, an open-source APRS tracker based on the Arduino platform. It was designed primarily to track high altitude balloons, so it has other handy features like reading temperature sensors and a buzzer for acoustic location.
 
