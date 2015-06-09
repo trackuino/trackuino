@@ -43,7 +43,16 @@ Flashing
 Hardware
 ========
 
-The [Trackuino shield](https://github.com/trackuino/shield) contains the Eagle schematic / pcb files of a shield you can build as-is (gerber files are included) or modify to suit your needs. Check its README for details.
+The [Trackuino shield](https://github.com/trackuino/shield) repository contains the Eagle schematic / pcb files of a shield you can build as-is (gerber files are included) or modify to suit your needs. Check its README for details.
+
+Related projects
+================
+
+Some other HAB-related projects I wrote:
+
+  * https://github.com/trackuino/hab-tracker - balloon trajectory prediction tool for Android 
+  * https://github.com/trackuino/aprsdb - an efficient and queriable APRS database server (required by the Hab Tracker Android app)
+  * https://github.com/trackuino/chdk-intervalometer - a LUA intervalometer for the old Canon A570IS camera (which might work on other CHDK cameras too)
 
 Support
 =======
