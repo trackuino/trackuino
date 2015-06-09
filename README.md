@@ -40,6 +40,11 @@ Flashing
 
 **Important**: When flashing the Arduino/Uno32, remove the Venus GPS or the entire Trackuino shield. After flashing the firmware, you can plug it back in. The GPS and the host computer share the same serial port on the AVR, so they will conflict when used together.
 
+Hardware
+========
+
+The [Trackuino shield](https://github.com/trackuino/shield) contains the Eagle schematic / pcb files of a shield you can build as-is (gerber files are included) or modify to suit your needs. Check its README for details.
+
 Support
 =======
 
