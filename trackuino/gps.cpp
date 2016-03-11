@@ -238,6 +238,15 @@ void gps_setup() {
   strcpy(gps_aprs_lon, "00000.00E");
 }
 
+void gps_reset_parser() {
+  at_checksum = false;        // CR/LF signals the end of the checksum
+  our_checksum = '$';         // Reset checksums
+  their_checksum = 0;
+  offset = 0;                 // Prepare for the next incoming sentence
+  num_tokens = 0;
+  sentence_type = SENTENCE_UNK;
+}
+
 bool gps_decode(char c)
 {
   int ret = false;
@@ -304,12 +313,8 @@ bool gps_decode(char c)
       if (num_tokens)
         Serial.println();
 #endif
-      at_checksum = false;        // CR/LF signals the end of the checksum
-      our_checksum = '$';         // Reset checksums
-      their_checksum = 0;
-      offset = 0;                 // Prepare for the next incoming sentence
-      num_tokens = 0;
-      sentence_type = SENTENCE_UNK;
+
+      gps_reset_parser();
       break;
     
     case '*':

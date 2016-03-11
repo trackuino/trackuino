@@ -106,6 +106,9 @@ void get_pos()
   // Get a valid position from the GPS
   int valid_pos = 0;
   uint32_t timeout = millis();
+
+  gps_reset_parser();
+
   do {
     if (Serial.available())
       valid_pos = gps_decode(Serial.read());
