@@ -244,6 +244,7 @@ bool gps_decode(char c)
 
   switch(c) {
     case '\r':
+      break;
     case '\n':
       // End of sentence
 
