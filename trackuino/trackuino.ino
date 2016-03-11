@@ -107,6 +107,10 @@ void get_pos()
   int valid_pos = 0;
   uint32_t timeout = millis();
 
+#ifdef DEBUG_GPS
+  Serial.println("\nget_pos()");
+#endif
+
   gps_reset_parser();
 
   do {

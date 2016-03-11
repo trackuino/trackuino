@@ -307,8 +307,17 @@ bool gps_decode(char c)
           gps_speed = new_speed;
           gps_altitude = new_altitude;
           ret = true;
+#ifdef DEBUG_GPS
+          Serial.print(" ACCEPT");
+#endif
         }
+      } else {
+#ifdef DEBUG_GPS
+        Serial.print(" (BAD!) ");
+        Serial.print(millis());
+#endif
       }
+
 #ifdef DEBUG_GPS
       if (num_tokens)
         Serial.println();
