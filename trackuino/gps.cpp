@@ -135,9 +135,9 @@ unsigned char from_hex(char a)
 
 void parse_sentence_type(const char *token)
 {
-  if (strcmp(token, "$GPGGA") == 0) {
+  if (strcmp(token+3, "GGA") == 0) {
     sentence_type = SENTENCE_GGA;
-  } else if (strcmp(token, "$GPRMC") == 0) {
+  } else if (strcmp(token+3, "RMC") == 0) {
     sentence_type = SENTENCE_RMC;
   } else {
     sentence_type = SENTENCE_UNK;
