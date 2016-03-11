@@ -135,6 +135,12 @@ void loop()
     // Show modem ISR stats from the previous transmission
     afsk_debug();
 #endif
+
+  } else {
+    // Discard GPS data received during sleep window
+    while (Serial.available()) {
+      Serial.read();
+    }
   }
 
   power_save(); // Incoming GPS data or interrupts will wake us up
