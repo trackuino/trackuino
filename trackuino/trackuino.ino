@@ -106,6 +106,13 @@ void get_pos()
   // Get a valid position from the GPS
   int valid_pos = 0;
   uint32_t timeout = millis();
+
+#ifdef DEBUG_GPS
+  Serial.println("\nget_pos()");
+#endif
+
+  gps_reset_parser();
+
   do {
     if (Serial.available())
       valid_pos = gps_decode(Serial.read());
@@ -135,6 +142,12 @@ void loop()
     // Show modem ISR stats from the previous transmission
     afsk_debug();
 #endif
+
+  } else {
+    // Discard GPS data received during sleep window
+    while (Serial.available()) {
+      Serial.read();
+    }
   }
 
   power_save(); // Incoming GPS data or interrupts will wake us up

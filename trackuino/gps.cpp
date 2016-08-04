@@ -135,9 +135,9 @@ unsigned char from_hex(char a)
 
 void parse_sentence_type(const char *token)
 {
-  if (strcmp(token, "$GPGGA") == 0) {
+  if (strcmp(token+3, "GGA") == 0) {
     sentence_type = SENTENCE_GGA;
-  } else if (strcmp(token, "$GPRMC") == 0) {
+  } else if (strcmp(token+3, "RMC") == 0) {
     sentence_type = SENTENCE_RMC;
   } else {
     sentence_type = SENTENCE_UNK;
@@ -238,12 +238,22 @@ void gps_setup() {
   strcpy(gps_aprs_lon, "00000.00E");
 }
 
+void gps_reset_parser() {
+  at_checksum = false;        // CR/LF signals the end of the checksum
+  our_checksum = '$';         // Reset checksums
+  their_checksum = 0;
+  offset = 0;                 // Prepare for the next incoming sentence
+  num_tokens = 0;
+  sentence_type = SENTENCE_UNK;
+}
+
 bool gps_decode(char c)
 {
   int ret = false;
 
   switch(c) {
     case '\r':
+      break;
     case '\n':
       // End of sentence
 
@@ -297,18 +307,23 @@ bool gps_decode(char c)
           gps_speed = new_speed;
           gps_altitude = new_altitude;
           ret = true;
+#ifdef DEBUG_GPS
+          Serial.print(" ACCEPT");
+#endif
         }
+      } else {
+#ifdef DEBUG_GPS
+        Serial.print(" (BAD!) ");
+        Serial.print(millis());
+#endif
       }
+
 #ifdef DEBUG_GPS
       if (num_tokens)
         Serial.println();
 #endif
-      at_checksum = false;        // CR/LF signals the end of the checksum
-      our_checksum = '$';         // Reset checksums
-      their_checksum = 0;
-      offset = 0;                 // Prepare for the next incoming sentence
-      num_tokens = 0;
-      sentence_type = SENTENCE_UNK;
+
+      gps_reset_parser();
       break;
     
     case '*':
