@@ -1,3 +1,11 @@
+Version 1.52 - 2016/08/25
+-------------------------
+
+ * FIX: Support U-BLOX M8 (and other Glonass / mixed GPSs), thanks to tmyrtle
+
+ * FIX: GPS minor fixes / debug code cleanup, thanks to tmyrtle
+
+
 Version 1.51 - 2014/07/25
 -------------------------
 

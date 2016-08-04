@@ -20,7 +20,7 @@ Features
 Download
 ========
 
-The latest version is 1.51.
+The latest version is 1.52.
 
 Use the `Download ZIP` button to get the source code.
 
