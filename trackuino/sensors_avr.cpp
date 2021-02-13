@@ -131,7 +131,7 @@ int sensors_vin()
    
   // Vin = mV * R2 / (R1 + R2)
   int vin = (uint32_t)mV * (VMETER_R1 + VMETER_R2) / VMETER_R2;
-  return vin;
+  return vin +300; //correction +300mv pour afficher tension realiste VBatt
 }
 
 

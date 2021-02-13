@@ -14,6 +14,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+ /*
 #ifdef AVR
 
 #include "config.h"
@@ -113,3 +114,4 @@ ISR (TIMER1_OVF_vect)
 }
 
 #endif // #ifdef AVR
+*/

@@ -1,23 +1,19 @@
 /* trackuino copyright (C) 2010  EA5HAV Javi
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
 
+ Pin's affectation:
+ DRA818V 7
+ DRA818V 12
+ Audio 3
+ TMP1  5
+ TMP2  6
+ LED 13
+ PTT 10
+ PwDw 8
+ 
+ */
+ 
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
-
 
 // --------------------------------------------------------------------------
 // THIS IS THE TRACKUINO FIRMWARE CONFIGURATION FILE. YOUR CALLSIGN AND
@@ -39,8 +35,8 @@
 // - Cars:       9
 // - Home:       0
 // - IGate:      5
-#define S_CALLSIGN      "MYCALL"
-#define S_CALLSIGN_ID   11
+#define S_CALLSIGN      "IW1QLH" //put your callsign
+#define S_CALLSIGN_ID   6
 
 // Destination callsign: APRS (with SSID=0) is usually okay.
 #define D_CALLSIGN      "APRS"
@@ -50,13 +46,13 @@
 // (read more about digipeating paths here: http://wa8lmf.net/DigiPaths/ )
 // The recommended digi path for a balloon is WIDE2-1 or pathless. The default
 // is pathless. Uncomment the following two lines for WIDE2-1 path:
-#define DIGI_PATH1      "WIDE2"
+#define DIGI_PATH1      "WIDE1"
 #define DIGI_PATH1_TTL  1
 
 // APRS comment: this goes in the comment portion of the APRS message. You
 // might want to keep this short. The longer the packet, the more vulnerable
 // it is to noise. 
-#define APRS_COMMENT    "Trackuino reminder: replace callsign with your own"
+#define APRS_COMMENT    "Home made trackuino"
 
 
 // --------------------------------------------------------------------------
@@ -64,7 +60,7 @@
 // --------------------------------------------------------------------------
 
 // TX delay in milliseconds
-#define TX_DELAY      300
+#define TX_DELAY      800
 
 // --------------------------------------------------------------------------
 // Tracker config (trackuino.pde)
@@ -83,7 +79,7 @@
 // 00:02:00, etc. and the second balloon will transmit at 00:00:30, 00:01:30,
 // 00:02:30, etc.
 #define APRS_SLOT     0     // seconds. -1 disables slotted transmissions
-#define APRS_PERIOD   60    // seconds
+#define APRS_PERIOD   180    // seconds // send every one minute
 
 // GPS baud rate (in bits per second). This is also the baud rate at which
 // debug data will be printed out the serial port.
@@ -111,7 +107,7 @@
 // --------------------------------------------------------------------------
 
 // This is the PTT pin
-#define PTT_PIN           4
+#define PTT_PIN           10
 
 // --------------------------------------------------------------------------
 // Sensors config (sensors.cpp)
@@ -142,7 +138,7 @@
 // to (arduino) digital pins, whereas VOUT refers to (arduino) analog pins.
 #define INTERNAL_LM60_VS_PIN     6
 #define INTERNAL_LM60_VOUT_PIN   0
-#define EXTERNAL_LM60_VS_PIN     7
+#define EXTERNAL_LM60_VS_PIN     5
 #define EXTERNAL_LM60_VOUT_PIN   1
 
 // Units for temperature sensors (Added by: Kyle Crockett)
@@ -214,13 +210,14 @@
 // 3. When flashing the firmware, disconnect the GPS from the RX pin or you
 //    will get errors.
 
-// #define DEBUG_GPS    // GPS sentence dump and checksum validation
-// #define DEBUG_AX25   // AX.25 frame dump
-// #define DEBUG_MODEM  // Modem ISR overrun and profiling
+#define DEBUG_GPS    // GPS sentence dump and checksum validation
+#define DEBUG_AX25   // AX.25 frame dump
+#define DEBUG_MODEM  // Modem ISR overrun and profiling
 // #define DEBUG_AFSK   // AFSK (modulation) output
 // #define DEBUG_RESET  // AVR reset
 // #define DEBUG_SENS   // Sensors
 
+#define IW1QLH_DEBUG
 
 #endif
 
